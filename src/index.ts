@@ -42,6 +42,21 @@ const detailedVenueSchema = z.object({
   })),
   venueCanOrder: z.boolean(),
   venueRef: z.union([z.string(), z.number()]),
+  address: z.object({
+    line1: z.string().nullable().optional(),
+    line2: z.string().nullable().optional(),
+    town: z.string().nullable().optional(),
+    county: z.string().nullable().optional(),
+    postcode: z.string().nullable().optional(),
+    // allow extra keys like location etc if present
+    location: z
+      .object({
+        latitude: z.number(),
+        longitude: z.number(),
+        distanceTolerance: z.number().optional(),
+      })
+      .optional(),
+  }),
 });
 
 export type DetailedVenue = z.infer<typeof detailedVenueSchema>;
