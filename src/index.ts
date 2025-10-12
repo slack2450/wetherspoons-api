@@ -5,6 +5,22 @@ const API_HEADERS = {
   Authorization: 'Bearer 1|SFS9MMnn5deflq0BMcUTSijwSMBB4mc7NSG2rOhqb2765466',
 };
 
+const addressSchema = z.object({
+  line1: z.string().nullable().optional(),
+  line2: z.string().nullable().optional(),
+  town: z.string().nullable().optional(),
+  county: z.string().nullable().optional(),
+  postcode: z.string().nullable().optional(),
+  // allow extra keys like location etc if present
+  location: z
+    .object({
+      latitude: z.number(),
+      longitude: z.number(),
+      distanceTolerance: z.number().optional(),
+    })
+    .optional(),
+});
+
 async function request(path: string): Promise<unknown> {
   const response = await fetch(`${API_ENDPOINT}${path}`,
     {
@@ -42,21 +58,7 @@ const detailedVenueSchema = z.object({
   })),
   venueCanOrder: z.boolean(),
   venueRef: z.union([z.string(), z.number()]),
-  address: z.object({
-    line1: z.string().nullable().optional(),
-    line2: z.string().nullable().optional(),
-    town: z.string().nullable().optional(),
-    county: z.string().nullable().optional(),
-    postcode: z.string().nullable().optional(),
-    // allow extra keys like location etc if present
-    location: z
-      .object({
-        latitude: z.number(),
-        longitude: z.number(),
-        distanceTolerance: z.number().optional(),
-      })
-      .optional(),
-  }),
+  address: addressSchema,
 });
 
 export type DetailedVenue = z.infer<typeof detailedVenueSchema>;
@@ -74,6 +76,7 @@ export const highLevelMenuSchema = z.object({
   name: z.string(),
   salesAreaId: z.number(),
   venueRef: z.number(),
+  address: addressSchema,
 });
 
 export type HighLevelMenu = z.infer<typeof highLevelMenuSchema>;
@@ -158,12 +161,9 @@ export interface Drink {
   ppu: number
 }
 
-export async function getDrinksFromHighLevelVenue(highLevelVenue: HighLevelVenue) {
+export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<Drink[]> {
   const detailedVenue = await getVenue(highLevelVenue);
-  return await getDrinksFromDetailedVenue(detailedVenue);
-}
 
-export async function getDrinksFromDetailedVenue(detailedVenue: DetailedVenue): Promise<Drink[]> {
   const salesArea = detailedVenue.salesAreas[0];
 
   if (!salesArea) return [];

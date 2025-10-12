@@ -65,11 +65,11 @@ console.log(details);
 ### Get Drinks with Price Analysis
 
 ```typescript
-import { venues, getDrinksFromHighLevelVenue } from 'wetherspoons-api';
+import { venues, getDrinks } from 'wetherspoons-api';
 
 const allVenues = await venues();
 const venue = allVenues[0];
-const drinks = await getDrinksFromHighLevelVenue(venue);
+const drinks = await getDrinks(venue);
 
 console.log(drinks);
 // [
@@ -83,17 +83,6 @@ console.log(drinks);
 //   ...
 // ]
 // Sorted by best value (lowest price per unit first)
-```
-
-Alternatively, if you already have detailed venue information:
-
-```typescript
-import { venues, getVenue, getDrinksFromDetailedVenue } from 'wetherspoons-api';
-
-const allVenues = await venues();
-const venue = allVenues[0];
-const detailedVenue = await getVenue(venue);
-const drinks = await getDrinksFromDetailedVenue(detailedVenue);
 ```
 
 ### Get Menus
@@ -153,21 +142,13 @@ Gets detailed menu information including all products and categories.
 
 **Returns:** Detailed menu with categories, item groups, and products.
 
-#### `getDrinksFromHighLevelVenue(highLevelVenue: HighLevelVenue): Promise<Drink[]>`
-Fetches all drinks from a venue's drinks menu, calculates alcohol units and price per unit, then sorts by best value. This is a convenience function that internally calls [`getVenue()`](src/index.ts:49) and [`getDrinksFromDetailedVenue()`](src/index.ts:151).
+#### `getDrinks(highLevelVenue: HighLevelVenue): Promise<Drink[]>`
+Fetches all drinks from a venue's drinks menu, calculates alcohol units and price per unit, then sorts by best value.
 
 **Parameters:**
 - `highLevelVenue`: A venue object from [`venues()`](src/index.ts:28)
 
 **Returns:** Array of drinks sorted by price per unit (best value first).
-
-#### `getDrinksFromDetailedVenue(detailedVenue: DetailedVenue): Promise<Drink[]>`
-Fetches all drinks from a detailed venue's drinks menu, calculates alcohol units and price per unit, then sorts by best value. Use this function when you already have detailed venue information to avoid an extra API call.
-
-**Parameters:**
-- `detailedVenue`: A detailed venue object from [`getVenue()`](src/index.ts:49)
-
-**Returns:** Array of drinks sorted by price per unit (best value first). Returns an empty array if the venue has no sales areas or no drinks menu.
 
 ### Types
 
