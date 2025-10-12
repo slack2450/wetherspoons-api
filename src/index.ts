@@ -40,12 +40,32 @@ export const highLevelVenueSchema = z.object({
   address: addressSchema,
 });
 
+export const globalsSchema = z.object({
+  identifier: z.number(),
+  name: z.string(),
+});
+
 export type HighLevelVenue = z.infer<typeof highLevelVenueSchema>;
 
 export async function venues(): Promise<HighLevelVenue[]> {
+  const globalsResponse = await fetch('https://oandp-appmgr-prod.s3.eu-west-2.amazonaws.com/global.json');
+  const globalsJson = await globalsResponse.json();
+  const globals = z.object({ venues: z.array(globalsSchema) }).parse(globalsJson);
+
   const response = await request('/venues');
   const venues = z.object({ data: z.array(highLevelVenueSchema) }).parse(response);
-  return venues.data;
+
+  // Create a Set of open venue identifiers for O(1) lookup
+  const openVenueIds = new Set(globals.venues.map(v => v.identifier));
+
+  const openVenues: HighLevelVenue[] = [];
+  for (const venue of venues.data) {
+    if (openVenueIds.has(venue.venueRef)) {
+      openVenues.push(venue);
+    }
+  }
+
+  return openVenues;
 }
 
 const detailedVenueSchema = z.object({
@@ -162,12 +182,7 @@ export interface Drink {
 }
 
 export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<Drink[]> {
-  let detailedVenue;
-  try {
-    detailedVenue = await getVenue(highLevelVenue);
-  } catch {
-    return [];
-  }
+  const detailedVenue = await getVenue(highLevelVenue);
 
   const salesArea = detailedVenue.salesAreas[0];
 
