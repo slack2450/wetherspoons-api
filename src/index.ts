@@ -37,6 +37,7 @@ export const highLevelVenueSchema = z.object({
   isClosed: z.boolean(),
   name: z.string(),
   venueRef: z.number(),
+  address: addressSchema,
 });
 
 export type HighLevelVenue = z.infer<typeof highLevelVenueSchema>;
@@ -76,7 +77,6 @@ export const highLevelMenuSchema = z.object({
   name: z.string(),
   salesAreaId: z.number(),
   venueRef: z.number(),
-  address: addressSchema,
 });
 
 export type HighLevelMenu = z.infer<typeof highLevelMenuSchema>;
