@@ -143,9 +143,12 @@ export interface Drink {
   ppu: number
 }
 
-export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<Drink[]> {
+export async function getDrinksFromHighLevelVenue(highLevelVenue: HighLevelVenue) {
   const detailedVenue = await getVenue(highLevelVenue);
+  return await getDrinksFromDetailedVenue(detailedVenue);
+}
 
+export async function getDrinksFromDetailedVenue(detailedVenue: DetailedVenue): Promise<Drink[]> {
   const salesArea = detailedVenue.salesAreas[0];
 
   if (!salesArea) return [];
