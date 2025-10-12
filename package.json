@@ -1,6 +1,6 @@
 {
   "name": "wetherspoons-api",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "A simple package to get data from the JD Wetherspoons API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,7 +12,10 @@
     "build": "tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -27,11 +30,13 @@
   "devDependencies": {
     "@eslint/js": "^9.37.0",
     "@stylistic/eslint-plugin": "^5.4.0",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^9.37.0",
     "globals": "^16.4.0",
     "jiti": "^2.6.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.46.0"
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "zod": "^4.1.12"

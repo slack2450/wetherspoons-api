@@ -4,6 +4,7 @@ A TypeScript package for accessing JD Wetherspoon's venue and menu data, includi
 
 [![npm version](https://img.shields.io/npm/v/wetherspoons-api.svg)](https://www.npmjs.com/package/wetherspoons-api)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/slack2450/wetherspoons-api/actions/workflows/test.yml/badge.svg)](https://github.com/slack2450/wetherspoons-api/actions/workflows/test.yml)
 
 ## Installation
 
@@ -205,6 +206,18 @@ npm install
 
 # Build the package
 npm run build
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage
+npm run test:coverage
 
 # Lint code
 npm run lint

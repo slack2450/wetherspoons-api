@@ -162,7 +162,12 @@ export interface Drink {
 }
 
 export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<Drink[]> {
-  const detailedVenue = await getVenue(highLevelVenue);
+  let detailedVenue;
+  try {
+    detailedVenue = await getVenue(highLevelVenue);
+  } catch {
+    return [];
+  }
 
   const salesArea = detailedVenue.salesAreas[0];
 
