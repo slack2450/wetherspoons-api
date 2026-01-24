@@ -22,12 +22,29 @@ const addressSchema = z.object({
 });
 
 async function request(path: string): Promise<unknown> {
-  const response = await fetch(`${API_ENDPOINT}${path}`,
+  const url = `${API_ENDPOINT}${path}`;
+  console.log('Fetching from API:', url);
+  
+  const response = await fetch(url,
     {
       headers: API_HEADERS,
     },
   );
-  const json = await response.json();
+  
+  console.log('API response status:', response.status, response.statusText);
+  console.log('API response headers:', Object.fromEntries(response.headers.entries()));
+  
+  const responseText = await response.text();
+  console.log('API response (first 200 chars):', responseText.substring(0, 200));
+  
+  let json;
+  try {
+    json = JSON.parse(responseText);
+  } catch (error) {
+    console.error('Failed to parse API response as JSON. Full response:', responseText);
+    throw error;
+  }
+  
   return json;
 }
 
@@ -48,10 +65,24 @@ export const globalsSchema = z.object({
 export type HighLevelVenue = z.infer<typeof highLevelVenueSchema>;
 
 export async function venues(): Promise<HighLevelVenue[]> {
+  console.log('Fetching global.json from S3...');
   const globalsResponse = await fetch('https://oandp-appmgr-prod.s3.eu-west-2.amazonaws.com/global.json');
-  const globalsJson = await globalsResponse.json();
+  console.log('Global.json response status:', globalsResponse.status, globalsResponse.statusText);
+  console.log('Global.json response headers:', Object.fromEntries(globalsResponse.headers.entries()));
+  
+  const globalsText = await globalsResponse.text();
+  console.log('Global.json response (first 200 chars):', globalsText.substring(0, 200));
+  
+  let globalsJson;
+  try {
+    globalsJson = JSON.parse(globalsText);
+  } catch (error) {
+    console.error('Failed to parse global.json as JSON. Response was:', globalsText);
+    throw error;
+  }
   const globals = z.object({ venues: z.array(globalsSchema) }).parse(globalsJson);
 
+  console.log('Fetching venues from API...');
   const response = await request('/venues');
   const venues = z.object({ data: z.array(highLevelVenueSchema) }).parse(response);
 
