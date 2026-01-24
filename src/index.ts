@@ -24,19 +24,19 @@ const addressSchema = z.object({
 async function request(path: string): Promise<unknown> {
   const url = `${API_ENDPOINT}${path}`;
   console.log('Fetching from API:', url);
-  
+
   const response = await fetch(url,
     {
       headers: API_HEADERS,
     },
   );
-  
+
   console.log('API response status:', response.status, response.statusText);
   console.log('API response headers:', Object.fromEntries(response.headers.entries()));
-  
+
   const responseText = await response.text();
   console.log('API response (first 200 chars):', responseText.substring(0, 200));
-  
+
   let json;
   try {
     json = JSON.parse(responseText);
@@ -44,7 +44,7 @@ async function request(path: string): Promise<unknown> {
     console.error('Failed to parse API response as JSON. Full response:', responseText);
     throw error;
   }
-  
+
   return json;
 }
 
@@ -69,10 +69,10 @@ export async function venues(): Promise<HighLevelVenue[]> {
   const globalsResponse = await fetch('https://oandp-appmgr-prod.s3.eu-west-2.amazonaws.com/global.json');
   console.log('Global.json response status:', globalsResponse.status, globalsResponse.statusText);
   console.log('Global.json response headers:', Object.fromEntries(globalsResponse.headers.entries()));
-  
+
   const globalsText = await globalsResponse.text();
   console.log('Global.json response (first 200 chars):', globalsText.substring(0, 200));
-  
+
   let globalsJson;
   try {
     globalsJson = JSON.parse(globalsText);
