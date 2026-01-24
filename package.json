@@ -1,6 +1,6 @@
 {
   "name": "wetherspoons-api",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A simple package to get data from the JD Wetherspoons API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -30,6 +30,7 @@
   "devDependencies": {
     "@eslint/js": "^9.37.0",
     "@stylistic/eslint-plugin": "^5.4.0",
+    "@types/node": "^25.0.10",
     "@vitest/ui": "^3.2.4",
     "eslint": "^9.37.0",
     "globals": "^16.4.0",

@@ -1,17 +1,29 @@
 import { z } from 'zod';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
 
 const API_ENDPOINT = 'https://ca.jdw-apps.net/api/v0.1';
 const API_HEADERS = {
-  Authorization: 'Bearer 1|SFS9MMnn5deflq0BMcUTSijwSMBB4mc7NSG2rOhqb2765466',
+  'Authorization': 'Bearer 1|SFS9MMnn5deflq0BMcUTSijwSMBB4mc7NSG2rOhqb2765466',
+  'User-Agent': `Wetherspoons API Client/${packageJson.version} (https://github.com/slack2450/wetherspoons-api)`,
 };
 
 const addressSchema = z.object({
   line1: z.string().nullable().optional(),
   line2: z.string().nullable().optional(),
+  line3: z.string().nullable().optional(),
   town: z.string().nullable().optional(),
   county: z.string().nullable().optional(),
   postcode: z.string().nullable().optional(),
-  // allow extra keys like location etc if present
+  country: z.object({
+    name: z.string(),
+    code: z.string(),
+  }).optional(),
   location: z
     .object({
       latitude: z.number(),
@@ -19,32 +31,15 @@ const addressSchema = z.object({
       distanceTolerance: z.number().optional(),
     })
     .optional(),
-});
+}).passthrough();
 
 async function request(path: string): Promise<unknown> {
-  const url = `${API_ENDPOINT}${path}`;
-  console.log('Fetching from API:', url);
-
-  const response = await fetch(url,
+  const response = await fetch(`${API_ENDPOINT}${path}`,
     {
       headers: API_HEADERS,
     },
   );
-
-  console.log('API response status:', response.status, response.statusText);
-  console.log('API response headers:', Object.fromEntries(response.headers.entries()));
-
-  const responseText = await response.text();
-  console.log('API response (first 200 chars):', responseText.substring(0, 200));
-
-  let json;
-  try {
-    json = JSON.parse(responseText);
-  } catch (error) {
-    console.error('Failed to parse API response as JSON. Full response:', responseText);
-    throw error;
-  }
-
+  const json = await response.json();
   return json;
 }
 
@@ -55,7 +50,7 @@ export const highLevelVenueSchema = z.object({
   name: z.string(),
   venueRef: z.number(),
   address: addressSchema,
-});
+}).passthrough();
 
 export const globalsSchema = z.object({
   identifier: z.number(),
@@ -65,26 +60,15 @@ export const globalsSchema = z.object({
 export type HighLevelVenue = z.infer<typeof highLevelVenueSchema>;
 
 export async function venues(): Promise<HighLevelVenue[]> {
-  console.log('Fetching global.json from S3...');
   const globalsResponse = await fetch('https://oandp-appmgr-prod.s3.eu-west-2.amazonaws.com/global.json');
-  console.log('Global.json response status:', globalsResponse.status, globalsResponse.statusText);
-  console.log('Global.json response headers:', Object.fromEntries(globalsResponse.headers.entries()));
-
-  const globalsText = await globalsResponse.text();
-  console.log('Global.json response (first 200 chars):', globalsText.substring(0, 200));
-
-  let globalsJson;
-  try {
-    globalsJson = JSON.parse(globalsText);
-  } catch (error) {
-    console.error('Failed to parse global.json as JSON. Response was:', globalsText);
-    throw error;
-  }
+  const globalsJson = await globalsResponse.json();
   const globals = z.object({ venues: z.array(globalsSchema) }).parse(globalsJson);
 
-  console.log('Fetching venues from API...');
   const response = await request('/venues');
-  const venues = z.object({ data: z.array(highLevelVenueSchema) }).parse(response);
+  const venues = z.object({
+    success: z.boolean().optional(),
+    data: z.array(highLevelVenueSchema),
+  }).parse(response);
 
   // Create a Set of open venue identifiers for O(1) lookup
   const openVenueIds = new Set(globals.venues.map(v => v.identifier));
