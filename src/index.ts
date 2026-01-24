@@ -84,18 +84,18 @@ export async function venues(): Promise<HighLevelVenue[]> {
 }
 
 const detailedVenueSchema = z.object({
-  canPlaceOrder: z.boolean(),
+  canPlaceOrder: z.boolean().optional(),
   franchise: z.string(),
   id: z.number(),
   isClosed: z.boolean().optional(),
   name: z.string(),
   salesAreas: z.array(z.object({
     id: z.number(),
-  })),
-  venueCanOrder: z.boolean(),
+  }).passthrough()),
+  venueCanOrder: z.boolean().optional(),
   venueRef: z.union([z.string(), z.number()]),
   address: addressSchema,
-});
+}).passthrough();
 
 export type DetailedVenue = z.infer<typeof detailedVenueSchema>;
 
