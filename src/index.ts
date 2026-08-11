@@ -8,9 +8,13 @@ const __dirname = dirname(__filename);
 const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
 
 const API_ENDPOINT = 'https://ca.jdw-apps.net/api/v0.1';
-const API_HEADERS = {
-  'Authorization': 'Bearer 1|SFS9MMnn5deflq0BMcUTSijwSMBB4mc7NSG2rOhqb2765466',
+const GLOBALS_ENDPOINT = 'https://oandp-appmgr-prod.s3.eu-west-2.amazonaws.com/global.json';
+const CLIENT_HEADERS = {
   'User-Agent': `Wetherspoons API Client/${packageJson.version} (https://github.com/slack2450/wetherspoons-api)`,
+};
+const API_HEADERS = {
+  Authorization: 'Bearer 1|SFS9MMnn5deflq0BMcUTSijwSMBB4mc7NSG2rOhqb2765466',
+  ...CLIENT_HEADERS,
 };
 
 const addressSchema = z.object({
@@ -28,19 +32,44 @@ const addressSchema = z.object({
     .object({
       latitude: z.number(),
       longitude: z.number(),
-      distanceTolerance: z.number().optional(),
+      distanceTolerance: z.number().nullable().optional(),
     })
     .optional(),
 }).passthrough();
 
+async function fetchJson(url: string, headers: Record<string, string>): Promise<unknown> {
+  const response = await fetch(url, { headers });
+  const contentType = response.headers.get('content-type') ?? '';
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Upstream request to ${url} failed with HTTP ${response.status} ${response.statusText}; `
+      + `content-type=${contentType || 'unknown'}; body=${JSON.stringify(body.slice(0, 300))}`,
+    );
+  }
+
+  const mediaType = (contentType.split(';', 1)[0] ?? '').trim().toLowerCase();
+  if (mediaType !== 'application/json' && !mediaType.endsWith('+json')) {
+    throw new Error(
+      `Upstream request to ${url} returned non-JSON content-type=${contentType || 'unknown'}; `
+      + `body=${JSON.stringify(body.slice(0, 300))}`,
+    );
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Upstream request to ${url} returned invalid JSON (${reason}); `
+      + `body=${JSON.stringify(body.slice(0, 300))}`,
+    );
+  }
+}
+
 async function request(path: string): Promise<unknown> {
-  const response = await fetch(`${API_ENDPOINT}${path}`,
-    {
-      headers: API_HEADERS,
-    },
-  );
-  const json = await response.json();
-  return json;
+  return fetchJson(`${API_ENDPOINT}${path}`, API_HEADERS);
 }
 
 export const highLevelVenueSchema = z.object({
@@ -60,23 +89,23 @@ export const globalsSchema = z.object({
 export type HighLevelVenue = z.infer<typeof highLevelVenueSchema>;
 
 export async function venues(): Promise<HighLevelVenue[]> {
-  const globalsResponse = await fetch('https://oandp-appmgr-prod.s3.eu-west-2.amazonaws.com/global.json');
-  const globalsJson = await globalsResponse.json();
+  const globalsJson = await fetchJson(GLOBALS_ENDPOINT, CLIENT_HEADERS);
   const globals = z.object({ venues: z.array(globalsSchema) }).parse(globalsJson);
 
   const response = await request('/venues');
   const venues = z.object({
     success: z.boolean().optional(),
-    data: z.array(highLevelVenueSchema),
+    data: z.array(z.unknown()),
   }).parse(response);
 
   // Create a Set of open venue identifiers for O(1) lookup
   const openVenueIds = new Set(globals.venues.map(v => v.identifier));
 
   const openVenues: HighLevelVenue[] = [];
-  for (const venue of venues.data) {
-    if (openVenueIds.has(venue.venueRef)) {
-      openVenues.push(venue);
+  for (const rawVenue of venues.data) {
+    const venueReference = z.object({ venueRef: z.number() }).safeParse(rawVenue);
+    if (venueReference.success && openVenueIds.has(venueReference.data.venueRef)) {
+      openVenues.push(highLevelVenueSchema.parse(rawVenue));
     }
   }
 
