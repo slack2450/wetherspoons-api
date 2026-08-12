@@ -1,16 +1,9 @@
 import { z } from 'zod';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
 
 const API_ENDPOINT = 'https://ca.jdw-apps.net/api/v0.1';
 const GLOBALS_ENDPOINT = 'https://oandp-appmgr-prod.s3.eu-west-2.amazonaws.com/global.json';
 const CLIENT_HEADERS = {
-  'User-Agent': `Wetherspoons API Client/${packageJson.version} (https://github.com/slack2450/wetherspoons-api)`,
+  'User-Agent': 'wetherspoons-api (https://github.com/slack2450/wetherspoons-api)',
 };
 const API_HEADERS = {
   Authorization: 'Bearer 1|SFS9MMnn5deflq0BMcUTSijwSMBB4mc7NSG2rOhqb2765466',
