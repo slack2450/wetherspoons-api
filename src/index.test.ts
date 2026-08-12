@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { venues, getDrinks } from './index.js';
+import { venues, getDrinks, getMenus, getVenue } from './index.js';
 
 // Add a delay between requests to avoid rate limiting.
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -18,8 +18,34 @@ describe('Wetherspoons API', async () => {
     describe(`Venue: ${venue.name} (${venue.venueRef})`, { timeout: 60000 }, () => {
       it('should fetch drinks menu', async () => {
         await delay(5000);
+
+        const detailedVenue = await getVenue(venue);
         const drinks = await getDrinks(venue);
-        expect(drinks).lengthOf.greaterThanOrEqual(20);
+
+        // Wetherspoons can disable ordering and mark every product out of stock
+        // outside a venue's service hours. getDrinks() still exercises the live
+        // endpoints and schemas, but an empty result is valid in that state.
+        if (detailedVenue.canPlaceOrder === false || detailedVenue.isClosed === true) {
+          expect(drinks).toEqual(expect.any(Array));
+          return;
+        }
+
+        const salesArea = detailedVenue.salesAreas[0];
+        if (!salesArea) {
+          throw new Error(`${venue.name} (${venue.venueRef}) has no sales area`);
+        }
+
+        const menus = await getMenus({ venue: detailedVenue, salesAreaId: salesArea.id });
+        const drinksMenu = menus.find(menu => menu.name === 'Drinks');
+        if (!drinksMenu) {
+          throw new Error(`${venue.name} (${venue.venueRef}) has no Drinks menu`);
+        }
+
+        if (drinksMenu.canOrder) {
+          expect(drinks).lengthOf.greaterThanOrEqual(20);
+        } else {
+          expect(drinks).toEqual(expect.any(Array));
+        }
       });
     });
   }
