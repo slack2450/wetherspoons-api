@@ -104,7 +104,7 @@ describe('getDrinks', () => {
     });
   });
 
-  it('rejects an orderable menu that contains no usable drinks', async () => {
+  it('treats an orderable menu with no usable drinks as temporarily unavailable', async () => {
     const responses = [
       {
         data: {
@@ -137,6 +137,83 @@ describe('getDrinks', () => {
     ];
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(responses.shift())));
 
-    await expect(getDrinks(apiVenue)).rejects.toThrow(/contained no usable drinks/);
+    await expect(getDrinks(apiVenue)).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'no-usable-drinks',
+      drinks: [],
+    });
+  });
+
+  it('finds drinks in non-standard menus across every sales area', async () => {
+    const responses = [
+      {
+        data: {
+          ...apiVenue,
+          canPlaceOrder: true,
+          salesAreas: [{ id: 10 }, { id: 11 }],
+          venueRef: apiVenue.venueRef.toString(),
+        },
+      },
+      { data: [] },
+      {
+        data: [{
+          canOrder: true,
+          franchise: 'jdw',
+          id: 21,
+          name: 'Disco Spoons',
+          salesAreaId: 11,
+          venueRef: apiVenue.venueRef,
+        }],
+      },
+      {
+        data: {
+          canOrder: true,
+          categories: [{
+            itemGroups: [{
+              items: [{
+                id: 99,
+                isOutOfStock: false,
+                itemType: 'product',
+                name: 'Test Lager',
+                description: '5% ABV 500ml',
+                options: {
+                  portion: {
+                    options: [{
+                      label: '500ml',
+                      value: {
+                        price: {
+                          currency: 'GBP',
+                          discount: 0,
+                          initialValue: 300,
+                          value: 300,
+                        },
+                      },
+                    }],
+                  },
+                },
+              }],
+              name: 'Lager',
+            }],
+            name: 'Drinks',
+          }],
+          franchise: 'jdw',
+          id: 21,
+          salesAreaId: 11,
+          venueRef: apiVenue.venueRef,
+        },
+      },
+    ];
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(responses.shift())));
+
+    await expect(getDrinks(apiVenue)).resolves.toEqual({
+      status: 'available',
+      drinks: [{
+        name: 'Test Lager',
+        units: 2.5,
+        productId: 99,
+        price: 300,
+        ppu: 120,
+      }],
+    });
   });
 });

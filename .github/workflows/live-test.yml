@@ -3,9 +3,9 @@ name: Live Wetherspoons API tests
 on:
   schedule:
     # GitHub cron is UTC. Trigger at both possible UTC offsets, then keep only
-    # the invocation which is 18:00 in Europe/London.
-    - cron: '0 17 * * *'
-    - cron: '0 18 * * *'
+    # the invocation which is 15:00 in Europe/London.
+    - cron: '0 14 * * *'
+    - cron: '0 15 * * *'
   workflow_dispatch:
 
 jobs:
@@ -14,12 +14,12 @@ jobs:
     outputs:
       should_run: ${{ steps.window.outputs.should_run }}
     steps:
-      - name: Select the 18:00 Europe/London invocation
+      - name: Select the 15:00 Europe/London invocation
         id: window
         env:
           EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [[ "$EVENT_NAME" != "schedule" || "$(TZ=Europe/London date +%H)" == "18" ]]; then
+          if [[ "$EVENT_NAME" != "schedule" || "$(TZ=Europe/London date +%H)" == "15" ]]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"

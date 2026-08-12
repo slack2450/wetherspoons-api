@@ -222,8 +222,8 @@ export type DrinksUnavailableReason
   = | 'venue-closed'
     | 'ordering-unavailable'
     | 'no-sales-area'
-    | 'no-drinks-menu'
-    | 'drinks-menu-unavailable';
+    | 'no-orderable-menus'
+    | 'no-usable-drinks';
 
 export type DrinksResult
   = | {
@@ -247,44 +247,35 @@ export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<DrinksR
     return { status: 'unavailable', reason: 'ordering-unavailable', drinks: [] };
   }
 
-  const salesArea = detailedVenue.salesAreas[0];
-
-  if (!salesArea) {
+  if (detailedVenue.salesAreas.length === 0) {
     return { status: 'unavailable', reason: 'no-sales-area', drinks: [] };
   }
 
-  const menus = await getMenus({ venue: detailedVenue, salesAreaId: salesArea.id });
+  const menus = (await Promise.all(detailedVenue.salesAreas.map(salesArea => (
+    getMenus({ venue: detailedVenue, salesAreaId: salesArea.id })
+  )))).flat();
+  const orderableMenus = menus.filter(menu => menu.canOrder);
 
-  let drinksMenu;
-  for (const menu of menus) {
-    if (menu.name === 'Drinks') {
-      drinksMenu = menu;
-      break;
-    }
+  if (orderableMenus.length === 0) {
+    return { status: 'unavailable', reason: 'no-orderable-menus', drinks: [] };
   }
 
-  if (!drinksMenu) {
-    return { status: 'unavailable', reason: 'no-drinks-menu', drinks: [] };
-  }
-
-  if (!drinksMenu.canOrder) {
-    return { status: 'unavailable', reason: 'drinks-menu-unavailable', drinks: [] };
-  }
-
-  const res = await getMenu(drinksMenu);
+  const detailedMenus = await Promise.all(orderableMenus.map(getMenu));
 
   // Convert menu to flat array of drinks
   const hash_map = new Map<number, DetailedMenuProduct>();
 
-  for (const categories of res.data.categories) {
-    for (const itemGroup of categories.itemGroups) {
-      for (const item of itemGroup.items) {
-        if (item.itemType == 'product') {
-          // Skip out of stock
-          if (item.isOutOfStock) {
-            continue;
+  for (const menu of detailedMenus) {
+    for (const categories of menu.data.categories) {
+      for (const itemGroup of categories.itemGroups) {
+        for (const item of itemGroup.items) {
+          if (item.itemType == 'product') {
+            // Skip out of stock
+            if (item.isOutOfStock) {
+              continue;
+            }
+            hash_map.set(item.id, item);
           }
-          hash_map.set(item.id, item);
         }
       }
     }
@@ -364,9 +355,7 @@ export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<DrinksR
   });
 
   if (drinks.length === 0) {
-    throw new Error(
-      `Orderable Drinks menu for ${highLevelVenue.name} (${highLevelVenue.venueRef}) contained no usable drinks`,
-    );
+    return { status: 'unavailable', reason: 'no-usable-drinks', drinks: [] };
   }
 
   return { status: 'available', drinks };

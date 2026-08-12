@@ -148,12 +148,12 @@ Gets detailed menu information including all products and categories.
 **Returns:** Detailed menu with categories, item groups, and products.
 
 #### `getDrinks(highLevelVenue: HighLevelVenue): Promise<DrinksResult>`
-Fetches all drinks from a venue's drinks menu, calculates alcohol units and price per unit, then sorts by best value.
+Fetches alcoholic products from every orderable menu in every sales area, calculates alcohol units and price per unit, then sorts by best value.
 
 **Parameters:**
 - `highLevelVenue`: A venue object from [`venues()`](src/index.ts:28)
 
-**Returns:** An explicit `available` result containing drinks sorted by price per unit, or an `unavailable` result with a reason. Upstream, parsing, and unexpectedly empty orderable-menu failures reject the promise.
+**Returns:** An explicit `available` result containing drinks sorted by price per unit, or an `unavailable` result for normal venue/menu availability conditions. Upstream transport and response-validation failures reject the promise.
 
 ```typescript
 type DrinksResult =
@@ -161,7 +161,7 @@ type DrinksResult =
   | {
       status: 'unavailable';
       reason: 'venue-closed' | 'ordering-unavailable' | 'no-sales-area' |
-        'no-drinks-menu' | 'drinks-menu-unavailable';
+        'no-orderable-menus' | 'no-usable-drinks';
       drinks: [];
     };
 ```
