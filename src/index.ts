@@ -218,12 +218,40 @@ export interface Drink {
   ppu: number
 }
 
-export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<Drink[]> {
+export type DrinksUnavailableReason
+  = | 'venue-closed'
+    | 'ordering-unavailable'
+    | 'no-sales-area'
+    | 'no-drinks-menu'
+    | 'drinks-menu-unavailable';
+
+export type DrinksResult
+  = | {
+    status: 'available'
+    drinks: Drink[]
+  }
+  | {
+    status: 'unavailable'
+    reason: DrinksUnavailableReason
+    drinks: []
+  };
+
+export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<DrinksResult> {
   const detailedVenue = await getVenue(highLevelVenue);
+
+  if (detailedVenue.isClosed === true) {
+    return { status: 'unavailable', reason: 'venue-closed', drinks: [] };
+  }
+
+  if (detailedVenue.canPlaceOrder === false || detailedVenue.venueCanOrder === false) {
+    return { status: 'unavailable', reason: 'ordering-unavailable', drinks: [] };
+  }
 
   const salesArea = detailedVenue.salesAreas[0];
 
-  if (!salesArea) return [];
+  if (!salesArea) {
+    return { status: 'unavailable', reason: 'no-sales-area', drinks: [] };
+  }
 
   const menus = await getMenus({ venue: detailedVenue, salesAreaId: salesArea.id });
 
@@ -235,7 +263,14 @@ export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<Drink[]
     }
   }
 
-  if (!drinksMenu) return [];
+  if (!drinksMenu) {
+    return { status: 'unavailable', reason: 'no-drinks-menu', drinks: [] };
+  }
+
+  if (!drinksMenu.canOrder) {
+    return { status: 'unavailable', reason: 'drinks-menu-unavailable', drinks: [] };
+  }
+
   const res = await getMenu(drinksMenu);
 
   // Convert menu to flat array of drinks
@@ -328,5 +363,11 @@ export async function getDrinks(highLevelVenue: HighLevelVenue): Promise<Drink[]
     return a.ppu - b.ppu;
   });
 
-  return drinks;
+  if (drinks.length === 0) {
+    throw new Error(
+      `Orderable Drinks menu for ${highLevelVenue.name} (${highLevelVenue.venueRef}) contained no usable drinks`,
+    );
+  }
+
+  return { status: 'available', drinks };
 }
