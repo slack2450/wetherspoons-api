@@ -25,20 +25,26 @@ describe('Wetherspoons API', async () => {
         // Wetherspoons can disable ordering and mark every product out of stock
         // outside a venue's service hours. getDrinks() still exercises the live
         // endpoints and schemas, but an empty result is valid in that state.
-        if (detailedVenue.canPlaceOrder === false || detailedVenue.isClosed === true) {
+        if (
+          detailedVenue.canPlaceOrder === false
+          || detailedVenue.venueCanOrder === false
+          || detailedVenue.isClosed === true
+        ) {
           expect(result.status).toBe('unavailable');
           return;
         }
 
         const salesArea = detailedVenue.salesAreas[0];
         if (!salesArea) {
-          throw new Error(`${venue.name} (${venue.venueRef}) has no sales area`);
+          expect(result).toEqual({ status: 'unavailable', reason: 'no-sales-area', drinks: [] });
+          return;
         }
 
         const menus = await getMenus({ venue: detailedVenue, salesAreaId: salesArea.id });
         const drinksMenu = menus.find(menu => menu.name === 'Drinks');
         if (!drinksMenu) {
-          throw new Error(`${venue.name} (${venue.venueRef}) has no Drinks menu`);
+          expect(result).toEqual({ status: 'unavailable', reason: 'no-drinks-menu', drinks: [] });
+          return;
         }
 
         if (drinksMenu.canOrder) {
