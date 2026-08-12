@@ -13,6 +13,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
+    "test:unit": "vitest run src/index.unit.test.ts",
+    "test:live": "vitest run src/index.test.ts",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage"
