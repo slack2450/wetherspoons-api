@@ -34,6 +34,25 @@ afterEach(() => {
 });
 
 describe('venues', () => {
+  it('uses mobile-client headers accepted by Wetherspoons CloudFront', async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      expect(init?.headers).toMatchObject({
+        'Accept': 'application/json',
+        'User-Agent': 'okhttp/4.12.0',
+      });
+      const url = input.toString();
+      if (url.endsWith('/global.json')) {
+        return jsonResponse({ venues: [globalVenue] });
+      }
+
+      return jsonResponse({ success: true, data: [apiVenue] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await venues();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('returns global venues and accepts a null distance tolerance', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
       const url = input.toString();

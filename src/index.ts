@@ -3,7 +3,10 @@ import { z } from 'zod';
 const API_ENDPOINT = 'https://ca.jdw-apps.net/api/v0.1';
 const GLOBALS_ENDPOINT = 'https://oandp-appmgr-prod.s3.eu-west-2.amazonaws.com/global.json';
 const CLIENT_HEADERS = {
-  'User-Agent': 'wetherspoons-api (https://github.com/slack2450/wetherspoons-api)',
+  'Accept': 'application/json',
+  // Wetherspoons' CloudFront distribution rejects Node/undici and project-
+  // specific user agents. Match the Android HTTP client used by mobile apps.
+  'User-Agent': 'okhttp/4.12.0',
 };
 const API_HEADERS = {
   Authorization: 'Bearer 1|SFS9MMnn5deflq0BMcUTSijwSMBB4mc7NSG2rOhqb2765466',
