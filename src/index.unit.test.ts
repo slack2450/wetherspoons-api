@@ -39,26 +39,34 @@ beforeEach(() => {
 });
 
 describe('venues', () => {
-  it('does not start the globals request when the API token is missing', async () => {
+  it('uses the built-in public client token when no override is configured', async () => {
     vi.stubEnv('WETHERSPOONS_API_TOKEN', '');
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = input.toString();
+      if (url.endsWith('/global.json')) return jsonResponse({ venues: [globalVenue] });
+      expect(init?.headers).toMatchObject({
+        Authorization: expect.stringMatching(/^Bearer 1\|[A-Za-z0-9]+$/),
+      });
+      return jsonResponse({ success: true, data: [apiVenue] });
+    });
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(venues()).rejects.toThrow('WETHERSPOONS_API_TOKEN is required');
-    expect(fetchMock).not.toHaveBeenCalled();
+    await expect(venues()).resolves.toEqual([apiVenue]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('uses mobile-client headers accepted by Wetherspoons CloudFront', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = input.toString();
       expect(init?.headers).toMatchObject({
         'Accept': 'application/json',
         'User-Agent': 'okhttp/4.12.0',
       });
-      const url = input.toString();
       if (url.endsWith('/global.json')) {
         return jsonResponse({ venues: [globalVenue] });
       }
 
+      expect(init?.headers).toMatchObject({ Authorization: 'Bearer test-token' });
       return jsonResponse({ success: true, data: [apiVenue] });
     });
     vi.stubGlobal('fetch', fetchMock);

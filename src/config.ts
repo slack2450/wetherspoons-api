@@ -14,10 +14,12 @@ type RuntimeGlobal = typeof globalThis & {
   process?: { env?: Record<string, string | undefined> }
 };
 
+// Public client token shipped by Wetherspoons' own application. Keep the
+// environment variable as an override in case the upstream client changes it.
+const DEFAULT_API_TOKEN = '1|SFS9MMnn5deflq0BMcUTSijwSMBB4mc7NSG2rOhqb2765466';
+
 export function apiToken(): string {
-  const token = (globalThis as RuntimeGlobal).process?.env?.WETHERSPOONS_API_TOKEN;
-  if (!token) throw new Error('WETHERSPOONS_API_TOKEN is required');
-  return token;
+  return (globalThis as RuntimeGlobal).process?.env?.WETHERSPOONS_API_TOKEN || DEFAULT_API_TOKEN;
 }
 
 export function clientHeaders(): Record<string, string> {

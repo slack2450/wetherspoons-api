@@ -8,8 +8,7 @@ import type { DetailedVenue, HighLevelVenue } from './schemas.js';
 
 export async function venues(options?: RequestOptions): Promise<HighLevelVenue[]> {
   const context = requestContext(options);
-  // Validate synchronously before starting the unauthenticated globals request.
-  // Otherwise a missing credential leaves that request running after rejection.
+  // Resolve the optional runtime override before starting either request.
   apiToken();
   const [globalsJson, response] = await Promise.all([requestGlobals(context), request('/venues', context)]);
   throwIfRequestStopped(context, 'Fetching venues');

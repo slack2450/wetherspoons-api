@@ -38,8 +38,6 @@ jobs:
       # This is deliberately the real network-backed suite. Never replace it
       # with mocks, skipping, continue-on-error, or a soft-failure wrapper.
       - name: Test every live Wetherspoons venue
-        env:
-          WETHERSPOONS_API_TOKEN: ${{ secrets.WETHERSPOONS_API_TOKEN }}
         run: npm run test:live
         timeout-minutes: 90
 

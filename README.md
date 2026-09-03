@@ -23,23 +23,24 @@ npm install wetherspoons-api
 
 ## Usage
 
-This package is intended for server-side Node.js 20.19 or newer. Set the API
-credential in the server environment before making requests:
+This package is intended for server-side Node.js 20.19 or newer. It includes the
+same public client token shipped by Wetherspoons' own application, so no secret
+configuration is required. You can override that value if the upstream client
+changes it:
 
 ```bash
-export WETHERSPOONS_API_TOKEN="your-token"
+export WETHERSPOONS_API_TOKEN="replacement-public-client-token"
 ```
 
-Do not bundle this package or the token into browser JavaScript. Browser clients
-should call a controlled server endpoint instead.
+Browser clients should still call a controlled server endpoint so upstream
+timeouts, validation, caching, and request volume remain centrally managed.
 
 ### Version 3 migration
 
-Version 3 requires `WETHERSPOONS_API_TOKEN`; this is intentionally a major
-release because earlier versions embedded a credential. Consumers must provide
-the token at runtime before upgrading. Request `timeoutMs` now bounds the entire
-operation, including retries and backoff. Use `attemptTimeoutMs` to set the
-maximum duration of each individual upstream attempt.
+Version 3 keeps zero-configuration token behaviour and accepts
+`WETHERSPOONS_API_TOKEN` as an optional override. Request `timeoutMs` now bounds
+the entire operation, including retries and backoff. Use `attemptTimeoutMs` to
+set the maximum duration of each individual upstream attempt.
 
 ### Get All Venues
 

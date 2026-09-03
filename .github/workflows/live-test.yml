@@ -36,6 +36,4 @@ jobs:
         run: npm ci
 
       - name: Hammer every live Wetherspoons venue
-        env:
-          WETHERSPOONS_API_TOKEN: ${{ secrets.WETHERSPOONS_API_TOKEN }}
         run: npm run test:live
