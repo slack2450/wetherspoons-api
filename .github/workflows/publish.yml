@@ -2,7 +2,9 @@ name: Publish to npm
 
 on:
   release:
-    types: [created]
+    # Published also fires when a reviewed draft is made public; `created`
+    # does not fire for draft releases.
+    types: [published]
   workflow_dispatch:
 
 permissions:
