@@ -23,6 +23,24 @@ npm install wetherspoons-api
 
 ## Usage
 
+This package is intended for server-side Node.js 20.19 or newer. Set the API
+credential in the server environment before making requests:
+
+```bash
+export WETHERSPOONS_API_TOKEN="your-token"
+```
+
+Do not bundle this package or the token into browser JavaScript. Browser clients
+should call a controlled server endpoint instead.
+
+### Version 3 migration
+
+Version 3 requires `WETHERSPOONS_API_TOKEN`; this is intentionally a major
+release because earlier versions embedded a credential. Consumers must provide
+the token at runtime before upgrading. Request `timeoutMs` now bounds the entire
+operation, including retries and backoff. Use `attemptTimeoutMs` to set the
+maximum duration of each individual upstream attempt.
+
 ### Get All Venues
 
 ```typescript
@@ -82,8 +100,9 @@ if (result.status === 'unavailable') {
 //     name: 'Ruddles Best',
 //     units: 2.27,
 //     productId: 12345,
-//     price: 249,  // in pence
-//     ppu: 109.69  // price per unit in pence
+//     price: 2.49,
+//     ppu: 1.0969,
+//     currency: 'GBP'
 //   },
 //   ...
 // ]
@@ -157,13 +176,28 @@ Fetches alcoholic products from every orderable menu in every sales area, calcul
 
 ```typescript
 type DrinksResult =
-  | { status: 'available'; drinks: Drink[] }
+  | { status: 'available'; drinks: Drink[]; partial?: boolean }
   | {
       status: 'unavailable';
       reason: 'venue-closed' | 'ordering-unavailable' | 'no-sales-area' |
         'no-orderable-menus' | 'no-usable-drinks';
       drinks: [];
     };
+```
+
+`partial` is `true` when drinks were recovered but at least one sales-area menu
+list or detailed menu could not be fetched. Treat partial results as unsuitable
+for complete price snapshots.
+
+All exported request functions also accept `RequestOptions`:
+
+```typescript
+type RequestOptions = {
+  signal?: AbortSignal;       // caller cancellation; never retried
+  timeoutMs?: number;         // one end-to-end operation deadline, default 15 seconds
+  attemptTimeoutMs?: number;  // per-attempt timeout, default 5 seconds
+  retries?: number;           // transient retry count, default 2
+};
 ```
 
 ### Types
@@ -199,8 +233,9 @@ type DrinksResult =
   name: string;
   units: number;        // Alcohol units
   productId: number;
-  price: number;        // Price in pence
-  ppu: number;          // Price per unit in pence
+  price: number;        // Major currency units
+  ppu: number;          // Price per unit
+  currency: string;     // ISO 4217 code, such as GBP or EUR
 }
 ```
 
@@ -224,6 +259,9 @@ npm run build
 
 # Run tests
 npm test
+
+# Explicitly run the slow production integration suite
+npm run test:live
 
 # Run tests in watch mode
 npm run test:watch

@@ -1,10 +1,13 @@
 {
   "name": "wetherspoons-api",
-  "version": "2.1.1",
+  "version": "3.0.0",
   "description": "A simple package to get data from the JD Wetherspoons API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
   "files": [
     "dist"
   ],
@@ -12,12 +15,12 @@
     "build": "tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "vitest run",
-    "test:unit": "vitest run src/index.unit.test.ts",
+    "test": "vitest run --exclude src/index.test.ts",
+    "test:unit": "vitest run --exclude src/index.test.ts",
     "test:live": "vitest run src/index.test.ts",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test:watch": "vitest --exclude src/index.test.ts",
+    "test:ui": "vitest --ui --exclude src/index.test.ts",
+    "test:coverage": "vitest run --coverage --exclude src/index.test.ts"
   },
   "repository": {
     "type": "git",
@@ -33,6 +36,7 @@
     "@eslint/js": "^9.37.0",
     "@stylistic/eslint-plugin": "^5.4.0",
     "@types/node": "^25.0.10",
+    "@vitest/coverage-v8": "^3.2.7",
     "@vitest/ui": "^3.2.7",
     "eslint": "^9.37.0",
     "globals": "^16.4.0",

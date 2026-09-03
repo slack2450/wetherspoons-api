@@ -5,14 +5,16 @@ import { venues, getDrinks } from './index.js';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('Wetherspoons API', async () => {
+  // Use exactly one real venue snapshot for both the population assertion and
+  // every per-venue request. A truncated snapshot must not lower its own bar.
+  const allVenues = await venues();
+
   describe('venues', () => {
-    it('should fetch and parse venues successfully', async () => {
-      const result = await venues();
-      expect(result).length.greaterThanOrEqual(500);
+    it('should fetch and parse venues successfully', () => {
+      expect(allVenues).length.greaterThanOrEqual(500);
     });
   });
 
-  const allVenues = await venues();
   const availableVenues = new Set<number>();
   const unavailableVenues = new Map<number, string>();
 
@@ -36,8 +38,9 @@ describe('Wetherspoons API', async () => {
           return;
         }
 
-        availableVenues.add(venue.venueRef);
+        expect(result.partial, `Venue ${venue.venueRef} returned an incomplete menu snapshot`).not.toBe(true);
         expect(result.drinks.length).toBeGreaterThan(0);
+        availableVenues.add(venue.venueRef);
       });
     });
   }
