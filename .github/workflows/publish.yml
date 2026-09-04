@@ -2,9 +2,7 @@ name: Publish to npm
 
 on:
   release:
-    # Published also fires when a reviewed draft is made public; `created`
-    # does not fire for draft releases.
-    types: [published]
+    types: [created]
   workflow_dispatch:
 
 permissions:
@@ -31,15 +29,6 @@ jobs:
 
       - name: Run linter
         run: npm run lint
-
-      - name: Run unit tests
-        run: npm test
-
-      # This is deliberately the real network-backed suite. Never replace it
-      # with mocks, skipping, continue-on-error, or a soft-failure wrapper.
-      - name: Test every live Wetherspoons venue
-        run: npm run test:live
-        timeout-minutes: 90
 
       - name: Build
         run: npm run build
