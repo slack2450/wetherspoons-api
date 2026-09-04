@@ -30,8 +30,23 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run the real all-venue API suite
+        run: npm run test:live
+        timeout-minutes: 180
+
       - name: Build
         run: npm run build
 
-      - name: Publish to npm
-        run: npm publish --access public
+      - name: Pack, verify, and publish the exact artifact
+        run: |
+          package_tarball="$(npm pack --json | jq -r '.[0].filename')"
+          mkdir package-smoke
+          cd package-smoke
+          npm init -y
+          npm install "../$package_tarball"
+          node --input-type=module -e "const api = await import('wetherspoons-api'); if (typeof api.venues !== 'function' || typeof api.getDrinks !== 'function') process.exit(1)"
+          cd ..
+          npm publish "$package_tarball" --access public
