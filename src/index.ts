@@ -18,5 +18,5 @@ export type {
 } from './schemas.js';
 export { getVenue, venues } from './venues.js';
 export { getMenu, getMenus } from './menus.js';
-export { getDrinks } from './drinks.js';
-export type { Drink, DrinksResult, DrinksUnavailableReason } from './drinks.js';
+export { getDrinks, MenuRequestError } from './drinks.js';
+export type { Drink, DrinksResult, DrinksUnavailableReason, MenuRequestContext } from './drinks.js';
