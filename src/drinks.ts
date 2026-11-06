@@ -21,8 +21,33 @@ export type DrinksUnavailableReason
     | 'no-usable-drinks';
 
 export type DrinksResult
-  = | { status: 'available', drinks: Drink[], partial?: boolean }
+  = | { status: 'available', drinks: Drink[], partial?: boolean, failures?: MenuRequestError[] }
     | { status: 'unavailable', reason: DrinksUnavailableReason, drinks: [] };
+
+export interface MenuRequestContext {
+  stage: 'menu-list' | 'menu-detail'
+  venueRef: number
+  salesAreaId: number
+  menuId?: number
+  menuName?: string
+}
+
+/** Preserve both request identity and the original HTTP/schema error. */
+export class MenuRequestError extends Error {
+  constructor(public readonly context: MenuRequestContext, cause: unknown) {
+    const menu = context.menuId === undefined ? '' : ` menu ${context.menuId} (${context.menuName})`;
+    super(`${context.stage} failed for venue ${context.venueRef}, sales area ${context.salesAreaId}${menu}`, { cause });
+    this.name = 'MenuRequestError';
+  }
+}
+
+async function withMenuContext<T>(context: MenuRequestContext, operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw new MenuRequestError(context, error);
+  }
+}
 
 function unitsFromProduct(product: DetailedMenuProduct, label: string): number | undefined {
   const strength = Number.parseFloat(product.description.match(/(\d{1,2}(?:\.\d+)?)\s*%\s*ABV/i)?.[1] ?? '');
@@ -87,8 +112,8 @@ function successful<T>(results: PromiseSettledResult<T>[]): T[] {
   return results.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
 }
 
-function failures<T>(results: PromiseSettledResult<T>[]): unknown[] {
-  return results.flatMap(result => result.status === 'rejected' ? [result.reason] : []);
+function failures<T>(results: PromiseSettledResult<T>[]): MenuRequestError[] {
+  return results.flatMap(result => result.status === 'rejected' ? [result.reason as MenuRequestError] : []);
 }
 
 export async function getDrinks(
@@ -106,7 +131,9 @@ export async function getDrinks(
   if (venue.salesAreas.length === 0) return { status: 'unavailable', reason: 'no-sales-area', drinks: [] };
 
   const menuListResults = await Promise.allSettled(
-    venue.salesAreas.map(salesArea => getMenus({ venue, salesAreaId: salesArea.id }, context)),
+    venue.salesAreas.map(salesArea => withMenuContext({
+      stage: 'menu-list', venueRef: highLevelVenue.venueRef, salesAreaId: salesArea.id,
+    }, () => getMenus({ venue, salesAreaId: salesArea.id }, context))),
   );
   // Promise.allSettled must not turn an AbortSignal into a partial result.
   throwIfRequestStopped(context, operation);
@@ -119,7 +146,10 @@ export async function getDrinks(
     return { status: 'unavailable', reason: 'no-orderable-menus', drinks: [] };
   }
 
-  const detailedResults = await Promise.allSettled(menus.map(menu => getMenu(menu, context)));
+  const detailedResults = await Promise.allSettled(menus.map(menu => withMenuContext({
+    stage: 'menu-detail', venueRef: highLevelVenue.venueRef, salesAreaId: menu.salesAreaId,
+    menuId: menu.id, menuName: menu.name,
+  }, () => getMenu(menu, context))));
   throwIfRequestStopped(context, operation);
   const detailedErrors = failures(detailedResults);
   // Availability can change between the menu-list and detail requests. The
@@ -136,7 +166,9 @@ export async function getDrinks(
   const drinks = drinksFromMenus(orderableDetailedMenus);
   throwIfRequestStopped(context, operation);
   if (drinks.length > 0) {
-    return errors.length > 0 ? { status: 'available', drinks, partial: true } : { status: 'available', drinks };
+    return errors.length > 0
+      ? { status: 'available', drinks, partial: true, failures: errors }
+      : { status: 'available', drinks };
   }
   if (errors.length > 0) throw new AggregateError(errors, 'Menu requests failed before any usable drinks were found');
   return { status: 'unavailable', reason: 'no-usable-drinks', drinks: [] };

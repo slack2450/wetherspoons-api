@@ -12,7 +12,24 @@ beforeEach(() => {
 });
 
 describe('getDrinks partial responses', () => {
-  it('accepts nullable ordering flags and keeps usable drinks when another menu fails', async () => {
+  it.each([
+    {
+      failure: 'HTTP error',
+      response: () => new Response('menu unavailable (Z556)', {
+        status: 500, statusText: 'Internal Server Error', headers: { 'content-type': 'text/plain' },
+      }),
+      cause: { name: 'UpstreamHttpError', status: 500 },
+    },
+    {
+      failure: 'schema error',
+      response: () => jsonResponse({ data: {
+        canOrder: true, categories: 'invalid', franchise: 'jdw', id: 20, salesAreaId: 10, venueRef: 1234,
+      } }),
+      cause: { name: 'ZodError', issues: expect.arrayContaining([
+        expect.objectContaining({ path: ['data', 'categories'], code: 'invalid_type' }),
+      ]) },
+    },
+  ])('preserves the $failure while keeping usable drinks from other menus', async ({ response, cause }) => {
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
       const url = input.toString();
       if (url.endsWith('/venues/1234')) {
@@ -33,7 +50,7 @@ describe('getDrinks partial responses', () => {
         ] });
       }
       if (url.endsWith('/menus/20')) {
-        return new Response('missing', { status: 404, statusText: 'Not Found', headers: { 'content-type': 'text/plain' } });
+        return response();
       }
       return jsonResponse({
         data: {
@@ -63,10 +80,16 @@ describe('getDrinks partial responses', () => {
       });
     }));
 
-    const result = await getDrinks(apiVenue);
+    const result = await getDrinks(apiVenue, { retries: 0 });
     expect(result.status).toBe('available');
     if (result.status === 'available') {
       expect(result.partial).toBe(true);
+      expect(result.failures).toHaveLength(1);
+      expect(result.failures?.[0]).toMatchObject({
+        name: 'MenuRequestError',
+        context: { stage: 'menu-detail', venueRef: 1234, salesAreaId: 10, menuId: 20, menuName: 'Food' },
+        cause,
+      });
       expect(result.drinks).toHaveLength(1);
       expect(result.drinks[0]?.currency).toBe('EUR');
       expect(result.drinks[0]?.units).toBeCloseTo(2.84);
@@ -129,6 +152,10 @@ describe('getDrinks partial responses', () => {
     await expect(getDrinks(apiVenue, { retries: 0 })).resolves.toMatchObject({
       status: 'available',
       partial: true,
+      failures: [{
+        context: { stage: 'menu-list', venueRef: 1234, salesAreaId: 10 },
+        cause: { name: 'UpstreamHttpError', status: 503 },
+      }],
       drinks: [{ currency: 'GBP', productId: 99 }],
     });
   });
