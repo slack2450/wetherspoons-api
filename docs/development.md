@@ -31,4 +31,4 @@ npm run lint
 npm run lint:fix
 ```
 
-For request and schema debugging, see [the official-client investigation guide](official-client-investigation.md).
+For request and schema debugging, see [the official client and API compatibility reference](official-client.md).

@@ -35,7 +35,7 @@ if (result.status === 'unavailable') {
 - [Usage and configuration](docs/usage.md)
 - [API reference](docs/api-reference.md)
 - [Development and testing](docs/development.md)
-- [Investigating the official client](docs/official-client-investigation.md)
+- [Official client and API compatibility](docs/official-client.md)
 
 ## Contributing
 
