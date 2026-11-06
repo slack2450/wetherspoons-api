@@ -37,6 +37,7 @@ export const detailedVenueSchema = z.object({
 export const highLevelMenuSchema = z.object({
   canOrder: z.boolean(), franchise: z.string(), id: z.number(), name: z.string(),
   salesAreaId: z.number(), venueRef: z.number(),
+  isSpecials: z.boolean().optional(),
 });
 
 export const detailedMenuProductSchema = z.object({
@@ -75,7 +76,8 @@ export const detailedMenuSchema = z.object({
       })),
       name: z.string(),
     })),
-    franchise: z.string(), id: z.number(), salesAreaId: z.number(), venueRef: z.number(),
+    franchise: z.string(), id: z.union([z.number(), z.literal('specials')]),
+    salesAreaId: z.number(), venueRef: z.number(),
   }),
 });
 

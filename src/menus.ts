@@ -21,8 +21,11 @@ export async function getMenus(
 
 export async function getMenu(menu: HighLevelMenu, options?: RequestOptions): Promise<DetailedMenu> {
   const context = requestContext(options);
+  // Legacy summaries advertise a numeric ID for Specials, but its detail is
+  // served by the virtual "specials" route. Use the flag, not the display name.
+  const menuId = menu.isSpecials ? 'specials' : menu.id;
   const response = await request(
-    `/${menu.franchise}/venues/${menu.venueRef}/sales-areas/${menu.salesAreaId}/menus/${menu.id}`, context,
+    `/${menu.franchise}/venues/${menu.venueRef}/sales-areas/${menu.salesAreaId}/menus/${menuId}`, context,
   );
   throwIfRequestStopped(context, `Fetching menu ${menu.id} for venue ${menu.venueRef}`);
   const result = detailedMenuSchema.parse(response);
